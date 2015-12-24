@@ -1,0 +1,28 @@
+{
+  "name": "bitbucket-api-data-harvester",
+  "version": "1.0.0",
+  "description": "Download commit data from the Bitbucket API and collate it into JSON files and CSV data files",
+  "main": "bitbucket.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/psyked/Bitbucket-API-Data-Harvester.git"
+  },
+  "keywords": [
+    "bitbucket"
+  ],
+  "author": "James Ford",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/psyked/Bitbucket-API-Data-Harvester/issues"
+  },
+  "homepage": "https://github.com/psyked/Bitbucket-API-Data-Harvester#readme",
+  "dependencies": {
+    "async": "^1.5.0",
+    "fs": "0.0.2",
+    "moment": "^2.10.6",
+    "request": "^2.67.0"
+  }
+}
