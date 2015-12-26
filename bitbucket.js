@@ -45,6 +45,7 @@ var request = require("request"),
     moment = require("moment"),
     async = require("async"),
     calendarStats = require("./parsers/calendarStats"),
+    teaminfo = require("./parsers/teaminfo"),
     weekend = require('./badges/weekend'),
     aftermidnight = require('./badges/aftermidnight'),
     mergemaster = require('./badges/merge-master'),
@@ -59,12 +60,12 @@ var argv = require('minimist')(process.argv.slice(2), {
 });
 //console.dir(argv);
 
-if (!argv.owner) {
+if(!argv.owner) {
     console.error('\033[31mError:\033[39m No Bitbucket Account specified!');
     return;
 }
 
-if (!argv.username || !argv.password) {
+if(!argv.username || !argv.password) {
     console.warn('\033[31mError:\033[39m No Bitbucket Username or Password specified!');
     return;
 }
@@ -87,24 +88,24 @@ var allSlugs = [],
 var todaysDate = moment().utc().startOf('day');
 var dir = './datacollector/cache-' + todaysDate.format('YYYY-MM-DD') + '/';
 
-if (!fs.existsSync(dir)) {
+if(!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
 }
 
 function parseRepoInfoPage(body) {
-    for (var i = 0, l = body.values.length; i < l; i++) {
+    for(var i = 0, l = body.values.length; i < l; i++) {
         var repo = body.values[i];
 
         next();
 
         function next() {
-            if (Date.parse(repo.updated_on) > startDate) {
+            if(Date.parse(repo.updated_on) > startDate) {
                 allSlugs.push(repo.links.commits.href);
             }
         }
     }
 
-    if (body.next) {
+    if(body.next) {
         loadRepoInfoPage(body.next);
     } else {
         calendarStats.initOutput(finishedLoadingRepos);
@@ -112,21 +113,21 @@ function parseRepoInfoPage(body) {
 }
 
 function makeCachedRequest(url, callback, errorCallback) {
-    if (url) {
+    if(url) {
         var filename = url.replace(/[^a-zA-Z0-9_]/g, "_");
         var cacheFile = dir + filename;
 
-        fs.exists(cacheFile, function (exists) {
-            if (exists) {
+        fs.exists(cacheFile, function(exists) {
+            if(exists) {
                 console.log("\033[33mInfo:\033[39m Loading " + url + " from local cache");
-                fs.readFile(cacheFile, function (err, contents) {
-                    if (err) {
+                fs.readFile(cacheFile, function(err, contents) {
+                    if(err) {
                         errorCallback();
                         return console.log(err);
                     }
                     try {
                         callback(JSON.parse(contents));
-                    } catch (e) {
+                    } catch(e) {
                         errorCallback();
                     }
                 });
@@ -138,8 +139,8 @@ function makeCachedRequest(url, callback, errorCallback) {
                     headers: {
                         "Authorization": auth
                     }
-                }, function (error, response, body) {
-                    if (!error && response.statusCode === 200) {
+                }, function(error, response, body) {
+                    if(!error && response.statusCode === 200) {
                         fs.writeFileSync(cacheFile, JSON.stringify(body));
                         callback(body);
                     } else {
@@ -155,6 +156,7 @@ function makeCachedRequest(url, callback, errorCallback) {
 
 function loadRepoInfoPage(url) {
     makeCachedRequest(url, parseRepoInfoPage, parseRepoInfoError);
+    teaminfo(owner);
 }
 
 function parseRepoInfoError() {
@@ -171,7 +173,7 @@ function finishedLoadingAllData() {
 }
 
 function loadNextItemInQueue() {
-    if (allSlugs[requestsIndex]) {
+    if(allSlugs[requestsIndex]) {
         console.log("\033[36mInfo:\033[39m Loading request " + (requestsIndex + 1) + " of " + allSlugs.length);
         makeCachedRequest(allSlugs[requestsIndex], parseRepoCommitDetails, parseRepoCommitError);
         requestsIndex++;
@@ -181,43 +183,43 @@ function loadNextItemInQueue() {
 function parseRepoCommitDetails(body) {
     var lastCommitIsWithinDateRange = false;
 
-    for (var i = 0, l = body.values.length; i < l; i++) {
+    for(var i = 0, l = body.values.length; i < l; i++) {
         /** @type {Commit} */
         var commit = body.values[i];
         var commitDate = Date.parse(commit.date);
 
-        if (commitDate > startDate) {
+        if(commitDate > startDate) {
             lastCommitIsWithinDateRange = true;
 
             var rtn;
             rtn = calendarStats.parseCommit(commit);
             async.parallel([
-                function (callback) {
+                function(callback) {
                     weekend.parseCommit(allBadges, commit, callback);
                 },
-                function (callback) {
+                function(callback) {
                     afterhours.parseCommit(allBadges, commit, callback);
                 },
-                function (callback) {
+                function(callback) {
                     aftermidnight.parseCommit(allBadges, commit, callback);
                 },
-                function (callback) {
+                function(callback) {
                     mergemaster.parseCommit(allBadges, commit, callback);
                 }
             ], next);
 
             function next() {
-                if (rtn) {
+                if(rtn) {
                     fs.appendFileSync(outputFile, rtn);
                 }
             }
         }
     }
 
-    if (body.next && lastCommitIsWithinDateRange == true) {
+    if(body.next && lastCommitIsWithinDateRange == true) {
         allSlugs.push(body.next);
     } else {
-        if (requestsIndex == allSlugs.length) {
+        if(requestsIndex == allSlugs.length) {
             finishedLoadingAllData();
         }
     }
